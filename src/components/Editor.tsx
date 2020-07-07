@@ -77,6 +77,12 @@ function getNextPos(key : string, pos : CursorPos) : CursorPos | false {
   if (downKeys.includes(key)) {
     return downKeyDown(key, pos);
   }
+  if (leftKeys.includes(key)) {
+    return leftKeyDown(key, pos);
+  }
+  if (rightKeys.includes(key)) {
+    return rightKeyDown(key, pos);
+  }
 
   return false;
 }
@@ -142,6 +148,58 @@ function downKeyDown(key : string, pos : CursorPos) : CursorPos {
     }
   }
   return nextPos;
+}
+
+/**
+ * 左キーを押された場合
+ * @param key 
+ * @param pos 
+ */
+function leftKeyDown(key : string, pos : CursorPos) : CursorPos {
+  const nextPos : CursorPos = {
+    element: pos.element,
+    offset: pos.offset,
+  };
+  //一つ後の要素を取得
+  const next = getNextElement(pos.element);
+  if (! next) {
+    return nextPos;
+  }
+  nextPos.element = next;
+  const nextStrLength : number = next.nodeValue?.length || 0;
+  //移動先のオフセットが存在すればそのまま移動
+  if (nextStrLength < nextPos.offset) {
+    //存在しない場合は移動先の末尾に移動
+    nextPos.offset = nextStrLength;
+  }
+
+  return nextPos
+}
+
+/**
+ * 右キーを押された場合
+ * @param key 
+ * @param pos 
+ */
+function rightKeyDown(key : string, pos : CursorPos) : CursorPos {
+  const nextPos : CursorPos = {
+    element: pos.element,
+    offset: pos.offset,
+  };
+  //一つ前の要素を取得
+  const previous = getPreviousElement(pos.element);
+  if (! previous) {
+    return nextPos;
+  }
+  nextPos.element = previous;
+  const nextStrLength : number = previous.nodeValue?.length || 0;
+  //移動先のオフセットが存在すればそのまま移動
+  if (nextStrLength < nextPos.offset) {
+    //存在しない場合は移動先の末尾に移動
+    nextPos.offset = nextStrLength;
+  }
+
+  return nextPos
 }
 
 //一つ前の要素の親要素を取得する
