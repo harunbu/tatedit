@@ -1,5 +1,6 @@
 import React from 'react';
 import './editor.css';
+import { Button } from '@material-ui/core';
 
 const upKeys = ['ArrowUp', 'Up'];
 const downKeys = ['ArrowDown', 'Down'];
@@ -10,20 +11,13 @@ const horizontalKeys = rightKeys.concat(leftKeys);
 const cursorKeys = verticalKeys.concat(horizontalKeys);
 
 /**
- * カーソルの位置を示すオブジェクト
- */
-interface CursorPos {
-  element: Node,
-  offset: number,
-}
-
-/**
  * キーダウンハンドラ
  * @param e
  */
 const keydown = (e: React.KeyboardEvent): void => {
   if (cursorKeys.includes(e.key)) {
-    cursorKeyDown(e.key) && e.preventDefault();
+    e.preventDefault();
+    cursorKeyDown(e.key, e.shiftKey);
   }
 }
 
@@ -31,48 +25,32 @@ const keydown = (e: React.KeyboardEvent): void => {
  * カーソルキーハンドラ
  * @return boolean 移動に成功したらtrueを返す
  */
-const cursorKeyDown = (key: string): boolean => {
+const cursorKeyDown = (key: string, isShiftKey: boolean): boolean => {
   //カーソルがいる要素と位置を取得
-  const pos = getCursorPos();
-  if (pos === null) {
-    return false;
-  }
-
-  //移動先を計算する関数を取得
-  const nextPosGetter = getNextPosGetter(key);
-
-  //移動先を計算
-  const nextPos = nextPosGetter(pos);
-  if (! nextPos) {
+  const selection = window.getSelection();
+  if (selection === null) {
     return false;
   }
 
   //移動
-  moveCursor(nextPos);
+  const moveHandler = getMoveHandler(key);
+  const result = moveHandler(selection);
+  if (result === false) {
+    return false;
+  }
+
+  const [nextNode, nextOffset] = result;
+  if (isShiftKey) {
+    selection.extend(nextNode, nextOffset);
+  } else {
+    selection.collapse(nextNode, nextOffset);
+  }
 
   return true;
 }
 
-/**
- * cursorの位置を取得
- */
-const getCursorPos = (): CursorPos | null => {
-  const selection = window.getSelection();
-  const targetRange = selection?.getRangeAt(0);
-  const startContainer = targetRange?.startContainer;
-  const startOffset = targetRange?.startOffset;
-  if (startContainer === undefined || startOffset === undefined) {
-    return null;
-  }
-  const cursorPos : CursorPos = {
-    element: startContainer,
-    offset: startOffset,
-  };
-  return cursorPos;
-}
-
 //各方向キー毎のイベントハンドラを取得
-const getNextPosGetter = (key: string): (pos: CursorPos) => CursorPos => {
+const getMoveHandler = (key: string): (sel: Selection) => [Node, number] | false => {
   if (upKeys.includes(key)) {
     return upKeyDown;
   }
@@ -87,114 +65,97 @@ const getNextPosGetter = (key: string): (pos: CursorPos) => CursorPos => {
 };
 
 /**
- * カーソルを移動
- * @param pos
- */
-const moveCursor = (pos: CursorPos): void  =>{
-  const range = document.createRange();
-  range.setStart(pos.element, pos.offset);
-  range.setEnd(pos.element, pos.offset);
-
-  const selection = window.getSelection();
-  selection?.removeAllRanges();
-  selection?.addRange(range);
-}
-
-/**
  * 上キーを押された場合
  * @param pos 
  */
-const upKeyDown = (pos: CursorPos): CursorPos => {
-  const nextPos:CursorPos = {
-    element: pos.element,
-    offset: pos.offset,
-  };
-  if (pos.offset > 0) {
+const upKeyDown = (sel: Selection): [Node, number] | false => {
+  const focusNode = sel.focusNode;
+  if (focusNode === null) {
+    return false;
+  }
+  let nextNode: Node = focusNode;
+  let nextOffset: number = sel.focusOffset;
+  if (sel.focusOffset > 0) {
     //要素内の移動であればそのままオフセットだけずらす
-    nextPos.offset = pos.offset - 1;
+    nextNode = focusNode;
+    nextOffset = sel.focusOffset - 1;
   } else {
     //要素の一番上で押された場合は、一つ前の要素の一番下に移動する
-    const previous = getPreviousElement(pos.element);
+    const previous = getPreviousElement(focusNode);
     if (previous) {
-      nextPos.element = previous;
-      nextPos.offset = previous.nodeValue?.length || pos.offset;
+      nextNode = previous;
+      nextOffset = previous.nodeValue?.length || nextOffset;
     }
   }
-  return nextPos;
+
+  return [nextNode, nextOffset];
 }
 
 /**
  * 下キーを押された場合
  * @param pos 
  */
-const downKeyDown = (pos: CursorPos): CursorPos => {
-  const strLength:number = pos.element.nodeValue?.length || 0;
-  const nextPos:CursorPos = {
-    element: pos.element,
-    offset: pos.offset,
-  };
-  if (pos.offset + 1 <= strLength) {
+const downKeyDown = (sel: Selection): [Node, number] | false => {
+  const focusNode = sel.focusNode;
+  if (focusNode === null) {
+    return false;
+  }
+  let nextNode: Node = focusNode;
+  let nextOffset: number = sel.focusOffset;
+  const focusLength:number = focusNode.nodeValue?.length || 0;
+  if (sel.focusOffset < focusLength) {
     //要素内の移動であればそのままオフセットだけずらす
-    nextPos.offset = pos.offset + 1;
+    nextNode = focusNode;
+    nextOffset = sel.focusOffset + 1;
   } else {
-    //要素の一番下で押された場合は、一つ後の要素の一番上に移動する
-    const next = getNextElement(pos.element);
-    if (next) {
-      nextPos.element = next;
-      nextPos.offset = 0;
+    //要素の一番上で押された場合は、一つ前の要素の一番下に移動する
+    const nextElement = getNextElement(focusNode);
+    if (nextElement) {
+      nextNode = nextElement;
+      nextOffset = 0;
     }
   }
-  return nextPos;
+  return [nextNode, nextOffset];
 }
 
 /**
  * 左キーを押された場合
  * @param pos 
  */
-const leftKeyDown = (pos: CursorPos): CursorPos => {
-  const nextPos : CursorPos = {
-    element: pos.element,
-    offset: pos.offset,
-  };
+const leftKeyDown = (sel: Selection): [Node, number] | false => {
+  const focusNode = sel.focusNode;
+  if (focusNode === null) {
+    return false;
+  }
   //一つ後の要素を取得
-  const next = getNextElement(pos.element);
-  if (! next) {
-    return nextPos;
+  const nextNode = getNextElement(focusNode);
+  if (! nextNode) {
+    return false;
   }
-  nextPos.element = next;
-  const nextStrLength : number = next.nodeValue?.length || 0;
-  //移動先のオフセットが存在すればそのまま移動
-  if (nextStrLength < nextPos.offset) {
-    //存在しない場合は移動先の末尾に移動
-    nextPos.offset = nextStrLength;
-  }
+  const nextStrLength : number = nextNode.nodeValue?.length || 0;
+  const nextOffset: number = (nextStrLength < sel.focusOffset) ? nextStrLength : sel.focusOffset;
 
-  return nextPos
+  return [nextNode, nextOffset];
 }
 
 /**
  * 右キーを押された場合
  * @param pos 
  */
-const rightKeyDown = (pos: CursorPos): CursorPos => {
-  const nextPos : CursorPos = {
-    element: pos.element,
-    offset: pos.offset,
-  };
-  //一つ前の要素を取得
-  const previous = getPreviousElement(pos.element);
-  if (! previous) {
-    return nextPos;
+const rightKeyDown = (sel: Selection): [Node, number] | false => {
+  const focusNode = sel.focusNode;
+  if (focusNode === null) {
+    return false;
   }
-  nextPos.element = previous;
-  const nextStrLength : number = previous.nodeValue?.length || 0;
-  //移動先のオフセットが存在すればそのまま移動
-  if (nextStrLength < nextPos.offset) {
-    //存在しない場合は移動先の末尾に移動
-    nextPos.offset = nextStrLength;
+  //一つ後の要素を取得
+  const previousNode = getPreviousElement(focusNode);
+  if (! previousNode) {
+    return false;
   }
+  const nextStrLength : number = previousNode.nodeValue?.length || 0;
+  const nextOffset: number = (nextStrLength < sel.focusOffset) ? nextStrLength : sel.focusOffset;
 
-  return nextPos
+  return [previousNode, nextOffset];
 }
 
 //一つ前の要素を取得する
@@ -221,10 +182,16 @@ const getNextElement = (element: Node) : Node | undefined => {
   return nextParentElement || undefined;
 }
 
+const getRange = (e: any) => {
+  const selection = window.getSelection();
+  console.log(selection);
+};
+
 const Editor = () => {
   return (
     <React.Fragment>
       <div contentEditable id="edit-area" onKeyDown={keydown}></div>
+      <Button onClick={getRange}>取得</Button>
     </React.Fragment>
   );
 }
