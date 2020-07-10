@@ -1,13 +1,13 @@
 import React from 'react';
 import './editor.css';
 
-const upKeys:string[] = ['ArrowUp', 'Up'];
-const downKeys:string[] = ['ArrowDown', 'Down'];
-const rightKeys:string[] = ['ArrowRight', 'Right'];
-const leftKeys:string[] = ['ArrowLeft', 'Left'];
-const verticalKeys:string[] = upKeys.concat(downKeys);
-const horizontalKeys:string[] = rightKeys.concat(leftKeys);
-const cursorKeys:string[] = verticalKeys.concat(horizontalKeys);
+const upKeys = ['ArrowUp', 'Up'];
+const downKeys = ['ArrowDown', 'Down'];
+const rightKeys = ['ArrowRight', 'Right'];
+const leftKeys = ['ArrowLeft', 'Left'];
+const verticalKeys = upKeys.concat(downKeys);
+const horizontalKeys = rightKeys.concat(leftKeys);
+const cursorKeys = verticalKeys.concat(horizontalKeys);
 
 /**
  * カーソルの位置を示すオブジェクト
@@ -21,7 +21,7 @@ interface CursorPos {
  * キーダウンハンドラ
  * @param e
  */
-function keydown(e: React.KeyboardEvent) : void {
+const keydown = (e: React.KeyboardEvent): void => {
   //カーソルキーが押された際の動作をオーバーライド
   if (cursorKeys.includes(e.key)) {
     cursorKeyDown(e.key) && e.preventDefault();
@@ -31,7 +31,7 @@ function keydown(e: React.KeyboardEvent) : void {
 /**
  * カーソルキーハンドラ
  */
-function cursorKeyDown(key : string) : boolean {
+const cursorKeyDown = (key: string): boolean => {
   //カーソルがいる要素と位置を取得
   const pos = getCursorPos();
   if (pos === null) {
@@ -52,7 +52,7 @@ function cursorKeyDown(key : string) : boolean {
 /**
  * cursorの位置を取得
  */
-function getCursorPos() : CursorPos | null {
+const getCursorPos = (): CursorPos | null => {
   const selection = window.getSelection();
   const targetRange = selection?.getRangeAt(0);
   const startContainer = targetRange?.startContainer;
@@ -70,18 +70,18 @@ function getCursorPos() : CursorPos | null {
 /**
  * 移動先の要素を取得
  */
-function getNextPos(key : string, pos : CursorPos) : CursorPos | false {
+const getNextPos = (key: string, pos: CursorPos): CursorPos | false => {
   if (upKeys.includes(key)) {
-    return upKeyDown(key, pos);
+    return upKeyDown(pos);
   }
   if (downKeys.includes(key)) {
-    return downKeyDown(key, pos);
+    return downKeyDown(pos);
   }
   if (leftKeys.includes(key)) {
-    return leftKeyDown(key, pos);
+    return leftKeyDown(pos);
   }
   if (rightKeys.includes(key)) {
-    return rightKeyDown(key, pos);
+    return rightKeyDown(pos);
   }
 
   return false;
@@ -91,7 +91,7 @@ function getNextPos(key : string, pos : CursorPos) : CursorPos | false {
  * カーソルを移動
  * @param pos
  */
-function moveCursor(pos : CursorPos) {
+const moveCursor = (pos: CursorPos): void  =>{
   const range = document.createRange();
   range.setStart(pos.element, pos.offset);
   range.setEnd(pos.element, pos.offset);
@@ -103,10 +103,9 @@ function moveCursor(pos : CursorPos) {
 
 /**
  * 上キーを押された場合
- * @param key 
  * @param pos 
  */
-function upKeyDown(key : string, pos : CursorPos) : CursorPos {
+const upKeyDown = (pos: CursorPos): CursorPos => {
   const nextPos:CursorPos = {
     element: pos.element,
     offset: pos.offset,
@@ -127,10 +126,9 @@ function upKeyDown(key : string, pos : CursorPos) : CursorPos {
 
 /**
  * 下キーを押された場合
- * @param key 
  * @param pos 
  */
-function downKeyDown(key : string, pos : CursorPos) : CursorPos {
+const downKeyDown = (pos: CursorPos): CursorPos => {
   const strLength:number = pos.element.nodeValue?.length || 0;
   const nextPos:CursorPos = {
     element: pos.element,
@@ -152,10 +150,9 @@ function downKeyDown(key : string, pos : CursorPos) : CursorPos {
 
 /**
  * 左キーを押された場合
- * @param key 
  * @param pos 
  */
-function leftKeyDown(key : string, pos : CursorPos) : CursorPos {
+const leftKeyDown = (pos: CursorPos): CursorPos => {
   const nextPos : CursorPos = {
     element: pos.element,
     offset: pos.offset,
@@ -178,10 +175,9 @@ function leftKeyDown(key : string, pos : CursorPos) : CursorPos {
 
 /**
  * 右キーを押された場合
- * @param key 
  * @param pos 
  */
-function rightKeyDown(key : string, pos : CursorPos) : CursorPos {
+const rightKeyDown = (pos: CursorPos): CursorPos => {
   const nextPos : CursorPos = {
     element: pos.element,
     offset: pos.offset,
@@ -202,41 +198,31 @@ function rightKeyDown(key : string, pos : CursorPos) : CursorPos {
   return nextPos
 }
 
-//一つ前の要素の親要素を取得する
-function getPreviousParentElement(element:Node) {
-  if ((element.parentElement?.id || '') === 'edit-area') {
-    return element.previousSibling;
-  }
-  return element.parentElement?.previousSibling;
-}
-
 //一つ前の要素を取得する
-function getPreviousElement(element:Node) {
-  const previousParentElement = getPreviousParentElement(element);
+const getPreviousElement = (element: Node): Node | undefined => {
+  const parentElementId:string = element.parentElement?.id || '';
+  const previousParentElement = (parentElementId === 'edit-area')
+    ? element.previousSibling
+    : element.parentElement?.previousSibling;
   if ((previousParentElement?.nodeType || 0) === 1) {
     return previousParentElement?.childNodes[0];
   }
-  return previousParentElement;
-}
-
-//一つ後の要素の親要素を取得する
-function getNextParentElement(element:Node) {
-  if ((element.parentElement?.id || '') === 'edit-area') {
-    return element.nextSibling;
-  }
-  return element.parentElement?.nextSibling;
+  return previousParentElement || undefined;
 }
 
 //一つ後の要素を取得する
-function getNextElement(element:Node) {
-  const previousParentElement = getNextParentElement(element);
-  if ((previousParentElement?.nodeType || 0) === 1) {
-    return previousParentElement?.childNodes[0];
+const getNextElement = (element: Node) : Node | undefined => {
+  const parentElementId:string = element.parentElement?.id || '';
+  const nextParentElement = (parentElementId === 'edit-area')
+    ? element.nextSibling
+    : element.parentElement?.nextSibling;
+  if ((nextParentElement?.nodeType || 0) === 1) {
+    return nextParentElement?.childNodes[0];
   }
-  return previousParentElement;
+  return nextParentElement || undefined;
 }
 
-function Editor() {
+const Editor = () => {
   return (
     <React.Fragment>
       <div contentEditable id="edit-area" onKeyDown={keydown}></div>
