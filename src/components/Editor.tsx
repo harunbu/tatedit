@@ -2,6 +2,8 @@ import React from 'react';
 import './editor.css';
 import { Button } from '@material-ui/core';
 
+let debugText = '';
+
 const upKeys = ['ArrowUp', 'Up'];
 const downKeys = ['ArrowDown', 'Down'];
 const rightKeys = ['ArrowRight', 'Right'];
@@ -11,6 +13,26 @@ const horizontalKeys = rightKeys.concat(leftKeys);
 const cursorKeys = verticalKeys.concat(horizontalKeys);
 
 /**
+ * ペースト時にスタイルを除去する
+ */
+const pasteHandler = (e: React.ClipboardEvent) => {
+  const selection = window.getSelection();
+  if (selection === null) {
+    return;
+  }
+  const range = selection.getRangeAt(0);
+  range.deleteContents();
+  const textNode = document.createTextNode(e.clipboardData.getData('Text'));
+  range.insertNode(textNode);
+  range.setEnd(textNode, e.clipboardData.getData('Text').length)
+  selection.removeAllRanges();
+  selection.addRange(range);
+  selection.collapseToEnd();
+  textNode.parentNode?.normalize();
+  e.preventDefault();
+}
+
+/**
  * キーダウンハンドラ
  * @param e
  */
@@ -18,6 +40,18 @@ const keydown = (e: React.KeyboardEvent): void => {
   if (cursorKeys.includes(e.key)) {
     e.preventDefault();
     cursorKeyDown(e.key, e.shiftKey);
+  }
+  //Ctrl + b を禁止
+  if (e.key === 'b' && e.ctrlKey) {
+    e.preventDefault();
+  }
+  //Ctrl + i を禁止
+  if (e.key === 'i' && e.ctrlKey) {
+    e.preventDefault();
+  }
+  //Ctrl + u を禁止
+  if (e.key === 'u' && e.ctrlKey) {
+    e.preventDefault();
   }
 }
 
@@ -42,6 +76,7 @@ const cursorKeyDown = (key: string, isShiftKey: boolean): boolean => {
   }
 
   //移動
+  console.log(result);
   const [nextNode, nextOffset] = result;
   if (isShiftKey) {
     selection.extend(nextNode, nextOffset);
@@ -145,6 +180,10 @@ const rightKeyDown = (focusNode: Node, focusOffset: number): [Node, number] | fa
 
 //一つ前の要素を取得する
 const getPreviousElement = (element: Node): Node | undefined => {
+  //ひとつ前の要素がテキストノードであればそれを返す
+  if (element.previousSibling && element.previousSibling.nodeType === Node.TEXT_NODE) {
+    return element.previousSibling;
+  }
   const parentElementId:string = element.parentElement?.id || '';
   const previousParentElement = (parentElementId === 'edit-area')
     ? element.previousSibling
@@ -157,6 +196,10 @@ const getPreviousElement = (element: Node): Node | undefined => {
 
 //一つ後の要素を取得する
 const getNextElement = (element: Node) : Node | undefined => {
+  //ひとつ前の要素がテキストノードであればそれを返す
+  if (element.nextSibling && element.nextSibling.nodeType === Node.TEXT_NODE) {
+    return element.nextSibling;
+  }
   const parentElementId:string = element.parentElement?.id || '';
   const nextParentElement = (parentElementId === 'edit-area')
     ? element.nextSibling
@@ -170,7 +213,7 @@ const getNextElement = (element: Node) : Node | undefined => {
 const Editor = () => {
   return (
     <React.Fragment>
-      <div contentEditable id="edit-area" onKeyDown={keydown}></div>
+      <div contentEditable id="edit-area" onKeyDown={keydown} onPaste={pasteHandler}></div>
     </React.Fragment>
   );
 }
