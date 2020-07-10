@@ -22,7 +22,6 @@ interface CursorPos {
  * @param e
  */
 const keydown = (e: React.KeyboardEvent): void => {
-  //カーソルキーが押された際の動作をオーバーライド
   if (cursorKeys.includes(e.key)) {
     cursorKeyDown(e.key) && e.preventDefault();
   }
@@ -30,6 +29,7 @@ const keydown = (e: React.KeyboardEvent): void => {
 
 /**
  * カーソルキーハンドラ
+ * @return boolean 移動に成功したらtrueを返す
  */
 const cursorKeyDown = (key: string): boolean => {
   //カーソルがいる要素と位置を取得
@@ -37,8 +37,12 @@ const cursorKeyDown = (key: string): boolean => {
   if (pos === null) {
     return false;
   }
-  //移動先の要素を判定
-  const nextPos = getNextPos(key, pos);
+
+  //移動先を計算する関数を取得
+  const nextPosGetter = getNextPosGetter(key);
+
+  //移動先を計算
+  const nextPos = nextPosGetter(pos);
   if (! nextPos) {
     return false;
   }
@@ -67,25 +71,20 @@ const getCursorPos = (): CursorPos | null => {
   return cursorPos;
 }
 
-/**
- * 移動先の要素を取得
- */
-const getNextPos = (key: string, pos: CursorPos): CursorPos | false => {
+//各方向キー毎のイベントハンドラを取得
+const getNextPosGetter = (key: string): (pos: CursorPos) => CursorPos => {
   if (upKeys.includes(key)) {
-    return upKeyDown(pos);
+    return upKeyDown;
   }
   if (downKeys.includes(key)) {
-    return downKeyDown(pos);
+    return downKeyDown;
   }
   if (leftKeys.includes(key)) {
-    return leftKeyDown(pos);
-  }
-  if (rightKeys.includes(key)) {
-    return rightKeyDown(pos);
+    return leftKeyDown;
   }
 
-  return false;
-}
+  return rightKeyDown;
+};
 
 /**
  * カーソルを移動
