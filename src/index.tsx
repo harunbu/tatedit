@@ -9,7 +9,7 @@ import Container from '@material-ui/core/Container';
 ReactDOM.render(
   <React.StrictMode>
     <CssBaseline />
-    <Container maxWidth="md">
+    <Container maxWidth="md" className="container">
       <App />
     </Container>
   </React.StrictMode>,
