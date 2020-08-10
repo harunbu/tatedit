@@ -89,12 +89,9 @@ const arrowKeyDown = (e: React.KeyboardEvent): boolean => {
   const focusNode = selection?.focusNode;
   const focusOffset = selection?.focusOffset;
   const editArea = document.getElementById('edit-area');
-  if (selection === undefined ||
-    selection === null ||
-    focusNode === undefined ||
-    focusNode === null ||
-    focusOffset === undefined ||
-    editArea === null
+  if (selection === undefined || selection === null ||
+    focusNode === undefined || focusNode === null ||
+    focusOffset === undefined || editArea === null
   ) {
     return false;
   }
