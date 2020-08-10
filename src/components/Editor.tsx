@@ -1,5 +1,6 @@
 import React from 'react';
 import './editor.css';
+import { Link } from "react-router-dom";
 
 //行の高さ
 const lineHeight = 31.5;
@@ -223,6 +224,7 @@ const Editor = () => {
       <div id="status-bar">文字数：<span id="charCount">0</span></div>
       <div id="input-window"></div>
       <div id="debug-window"></div>
+      <Link to="/">Topに戻る</Link>
     </React.Fragment>
   );
 }
